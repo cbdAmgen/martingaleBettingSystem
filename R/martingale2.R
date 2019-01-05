@@ -1,9 +1,9 @@
 rm(list = ls())
-cat("\014")
+# cat("\014")
 
 library(tidyverse)
 
-totalHands <- 30    # 1 minute per hand. This is where you set up your bets/time restriction
+totalHands <- 10    # 1 minute per hand. This is where you set up your bets/time restriction
 bankroll <- 1000    # starting amount in pocket. This is where you set up your wealth restriction
 B <- 1              # beginning bet
 
@@ -14,7 +14,7 @@ nSims <- 1000       # number of simulations for each number of hands
 
 
 # maxNumLosses <- max(which(B * (2^(1:100) - 1) <= bankroll)) # maximum number of losses you can afford
-maxNumLosses <- 6
+maxNumLosses <- 10
 
 
 
@@ -24,7 +24,7 @@ system.time(
   for(i in 1:totalHands){
     print(i)
     blah <- matrix(0, ncol = maxNumLosses, nrow = nSims)
-    # winnings <- matrix(NA, ncol = maxNumLosses, nrow = nSims)
+    winnings <- matrix(NA, ncol = maxNumLosses, nrow = nSims)
     for(j in 1:nSims){
       
       seqWinLoss <- rbinom(i, 1, p)         # simulate a sequence of wins and losses 
@@ -47,21 +47,28 @@ system.time(
       # }
       
       for(k in 1:maxNumLosses){
-
+        
         tmp <- 0
         # tmpVec <- vector(mode = "numeric", length = maxNumLosses)
         for(m in 1:nrow(allStreaks)){
-          if(allStreaks$length[m] == k && allStreaks$value[m] == 0){
-            tmp <- tmp - (2^k - 1)
-            # print(m)
+          if(allStreaks$length[m] >= k && allStreaks$value[m] == 0){
+            tmp <- tmp - B*(2^k - 1)
+            # print(tmp)
+            # print(str_c("m = ", m, ", tmp = ", tmp))
             break
+          }
+          else if(allStreaks$length[m] < k && allStreaks$value[m] == 0){
+            # tmp <- tmp - B*(2^allStreaks$length[m] - 1)
+            # print(str_c("m = ", m, ", tmp = ", tmp))
+            next
           }
           else{
             # print(m)
-            tmp <- tmp + allStreaks$length[m]*allStreaks$value[m]
+            tmp <- tmp + B*allStreaks$length[m]
+            # print(str_c("m = ", m, ", tmp = ", tmp))
           }
         }
-
+        
         winnings[j, k] <- tmp
       }
 
@@ -72,10 +79,11 @@ system.time(
     
     blah2 <- (blah > 0)
     goBustProb[i, ] <- colMeans(blah2)
-    # expectedWinnings[i, ] <- colMeans(winnings)
+    expectedWinnings[i, ] <- colMeans(winnings)
   }
 )
 goBustProb
+expectedWinnings
 # goBustProb <- round(goBustProb, 4)
 # expectedWinnings <- round(expectedWinnings, 2)
 # colnames(goBustProb) <- 1:ncol(goBustProb)
