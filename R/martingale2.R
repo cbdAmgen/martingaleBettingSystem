@@ -73,23 +73,23 @@ system.time(
         }
         if(allStreaks$value[nrow(allStreaks)] == 1){
           tmp <- tmp + B*allStreaks$length[nrow(allStreaks)]
-          tmpEnd <- tmp
+          # tmpEnd <- tmp
         }else{
-          tmpEnd <- tmp
-          numPlaysLeft <- max(0, k - allStreaks$length[nrow(allStreaks)])
-          endPlays <- rbinom(numPlaysLeft, 1, p)
-          if(any(endPlays)){
-            tmpEnd <- tmp + B
-          }else{
-            tmpEnd <- tmp - B*(2^k - 1)
-          }
+          # tmpEnd <- tmp
+          # numPlaysLeft <- max(0, k - allStreaks$length[nrow(allStreaks)])
+          # endPlays <- rbinom(numPlaysLeft, 1, p)
+          # if(any(endPlays)){
+          #   tmpEnd <- tmp + B
+          # }else{
+          #   tmpEnd <- tmp - B*(2^k - 1)
+          # }
           tmp <- tmp - B*(2^allStreaks$length[nrow(allStreaks)] - 1)
           
           
         }
         
         winnings[j, k] <- tmp
-        winningsEnd[j, k] <- tmpEnd
+        # winningsEnd[j, k] <- tmpEnd
         
       }
       
@@ -101,12 +101,12 @@ system.time(
     blah2 <- (blah > 0)
     goBustProb[i, ] <- colMeans(blah2)
     expectedWinnings[i, ] <- colMeans(winnings)
-    expectedWinningsEnd[i, ] <- colMeans(winningsEnd)
+    # expectedWinningsEnd[i, ] <- colMeans(winningsEnd)
   }
 )
 goBustProb
 expectedWinnings
-expectedWinningsEnd
+# expectedWinningsEnd
 # goBustProb <- round(goBustProb, 4)
 # expectedWinnings <- round(expectedWinnings, 2)
 # colnames(goBustProb) <- 1:ncol(goBustProb)
