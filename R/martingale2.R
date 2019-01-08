@@ -48,33 +48,78 @@ system.time(
       #     -(2^k - 1)*(numAtLeast[k] > 0)
       # }
       
+      # for(k in 1:maxNumLosses){
+      #   
+      #   tmp <- 0
+      #   if(nrow(allStreaks) > 1){
+      #     for(m in 1:(nrow(allStreaks) - 1)){
+      #       if(allStreaks$length[m] >= k && allStreaks$value[m] == 0){
+      #         tmp <- tmp - B*(2^k - 1)
+      #         # print(tmp)
+      #         # print(str_c("m = ", m, ", tmp = ", tmp))
+      #         break
+      #       }
+      #       else if(allStreaks$length[m] < k && allStreaks$value[m] == 0){
+      #         # tmp <- tmp - B*(2^allStreaks$length[m] - 1)
+      #         # print(str_c("m = ", m, ", tmp = ", tmp))
+      #         next
+      #       }
+      #       else{
+      #         # print(m)
+      #         tmp <- tmp + B*allStreaks$length[m]
+      #         # print(str_c("m = ", m, ", tmp = ", tmp))
+      #       }
+      #     }
+      #   }
+      #   if(allStreaks$value[nrow(allStreaks)] == 1){
+      #     tmp <- tmp + B*allStreaks$length[nrow(allStreaks)]
+      #     # tmpEnd <- tmp
+      #   }else{
+      #     # tmpEnd <- tmp
+      #     # numPlaysLeft <- max(0, k - allStreaks$length[nrow(allStreaks)])
+      #     # endPlays <- rbinom(numPlaysLeft, 1, p)
+      #     # if(any(endPlays)){
+      #     #   tmpEnd <- tmp + B
+      #     # }else{
+      #     #   tmpEnd <- tmp - B*(2^k - 1)
+      #     # }
+      #     tmp <- tmp - B*(2^allStreaks$length[nrow(allStreaks)] - 1)
+      #     
+      #     
+      #   }
+      #   
+      #   winnings[j, k] <- tmp
+      #   # winningsEnd[j, k] <- tmpEnd
+      #   
+      # }
+      
       for(k in 1:maxNumLosses){
         
         tmp <- 0
+        broken <- 0
         if(nrow(allStreaks) > 1){
           for(m in 1:(nrow(allStreaks) - 1)){
             if(allStreaks$length[m] >= k && allStreaks$value[m] == 0){
               tmp <- tmp - B*(2^k - 1)
               # print(tmp)
               # print(str_c("m = ", m, ", tmp = ", tmp))
+              broken <- 1
               break
-            }
-            else if(allStreaks$length[m] < k && allStreaks$value[m] == 0){
+            }else if(allStreaks$length[m] < k && allStreaks$value[m] == 0){
               # tmp <- tmp - B*(2^allStreaks$length[m] - 1)
               # print(str_c("m = ", m, ", tmp = ", tmp))
               next
-            }
-            else{
+            }else{
               # print(m)
               tmp <- tmp + B*allStreaks$length[m]
               # print(str_c("m = ", m, ", tmp = ", tmp))
             }
           }
         }
-        if(allStreaks$value[nrow(allStreaks)] == 1){
+        if(allStreaks$value[nrow(allStreaks)] == 1 && !broken){
           tmp <- tmp + B*allStreaks$length[nrow(allStreaks)]
           # tmpEnd <- tmp
-        }else{
+        }else if(allStreaks$value[nrow(allStreaks)] == 0 && !broken){
           # tmpEnd <- tmp
           # numPlaysLeft <- max(0, k - allStreaks$length[nrow(allStreaks)])
           # endPlays <- rbinom(numPlaysLeft, 1, p)
@@ -84,16 +129,14 @@ system.time(
           #   tmpEnd <- tmp - B*(2^k - 1)
           # }
           tmp <- tmp - B*(2^allStreaks$length[nrow(allStreaks)] - 1)
-          
-          
+        }else{
+          # print("This loop is broken.")
         }
         
         winnings[j, k] <- tmp
         # winningsEnd[j, k] <- tmpEnd
         
       }
-      
-      
       
       
     }
