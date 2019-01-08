@@ -3,28 +3,36 @@ cat("\014")
 
 library(tidyverse)
 
-# totalHands <- 1:600 # 1 minute per hand. Willing to play up to 10 hours
-totalHands <- 1:30
-pWin <- 0.4748 # probability of winning each hand
-nSims <- 10000 # number of simulations for each number of hands
-maxNumLosses <- 6
-currentLosses <- 1:maxNumLosses
+totalHands <- 10    # 1 minute per hand. This is where you set up your bets/time restriction
+bankroll <- 1000    # starting amount in pocket. This is where you set up your wealth restriction
+B <- 1              # beginning bet
 
-beginningBet <- 1
-beginningBet * cumsum(2^(currentLosses-1))
-maxDollarLoss <- 1000
+p <- 0.4748         # probability of winning each hand
+q <- 1 - p          # probability of losing each hand
+
+nSims <- 10000       # number of simulations for each number of hands
 
 
-output <- matrix(NA, ncol = maxNumLosses, nrow = max(totalHands))
-avgWinnings <- matrix(NA, ncol = maxNumLosses, nrow = max(totalHands))
-system.time(
-for(i in totalHands){
+# maxNumLosses <- max(which(B * (2^(1:100) - 1) <= bankroll)) # maximum number of losses you can afford
+maxNumLosses <- 10
+
+goBustProb <- matrix(0, ncol = maxNumLosses, nrow = totalHands)
+expectedWinnings <- matrix(0, ncol = maxNumLosses, nrow = totalHands)
+expectedWinningsEnd <- matrix(0, ncol = maxNumLosses, nrow = totalHands)
+seqWinLossList <- vector("list", length = totalHands)
+winningsList <- vector("list", length = totalHands)
+
+for(i in 1:totalHands){
   print(i)
-  blah <- matrix(NA, ncol = maxNumLosses, nrow = nSims)
+  blah <- matrix(0, ncol = maxNumLosses, nrow = nSims)
+  blahEnd <- matrix(0, ncol = maxNumLosses, nrow = nSims)
   winnings <- matrix(NA, ncol = maxNumLosses, nrow = nSims)
+  winningsEnd <- matrix(NA, ncol = maxNumLosses, nrow = nSims)
+  seqWinLossList[[i]] <- matrix(NA, ncol = i, nrow = nSims)
   for(j in 1:nSims){
     
-    seqWinLoss <- rbinom(i, 1, pWin) # simulate a sequence of wins and losses 
+    seqWinLoss <- rbinom(i, 1, p)         # simulate a sequence of wins and losses 
+    seqWinLossList[[i]][j,] <- seqWinLoss
     seqLengthAndValues <- rle(seqWinLoss) # The rle() function gives the length of
     # all sequences and the value (Win or Loss)
     # of each sequence
@@ -35,50 +43,68 @@ for(i in totalHands){
     streaksOfLosses <- allStreaks %>% 
       filter(value == 0) # the sequences that were all losses
     
-    
-    
     numAtLeast <- vector(mode = "numeric", length = maxNumLosses)
     for(k in 1:maxNumLosses){
       numAtLeast[k] <- sum(streaksOfLosses$length >= k)
     }
+    blah[j, 1:length(numAtLeast)] <- numAtLeast
     
-    # for(k in 1:maxNumLosses){
-    #   winnings[j, k] <- sum(allStreaks$length*allStreaks$value)*(numAtLeast[k] == 0) +
-    #     -(2^k - 1)*(numAtLeast[k] > 0)
-    # }
+    for(k in 1:maxNumLosses){
+      
+      tmp <- 0
+      broken <- 0
+      if(nrow(allStreaks) > 1){
+        for(m in 1:(nrow(allStreaks) - 1)){
+          if(allStreaks$length[m] >= k && allStreaks$value[m] == 0){
+            tmp <- tmp - B*(2^k - 1)
+            broken <- 1
+            break
+          }else if(allStreaks$length[m] < k && allStreaks$value[m] == 0){
+            next
+          }else{
+            tmp <- tmp + B*allStreaks$length[m]
+          }
+        }
+      }
+      if(allStreaks$value[nrow(allStreaks)] == 1 && !broken){
+        tmp <- tmp + B*allStreaks$length[nrow(allStreaks)]
+        # tmpEnd <- tmp
+      }else if(allStreaks$value[nrow(allStreaks)] == 0 && !broken){
+        # tmpEnd <- tmp
+        # numPlaysLeft <- max(0, k - allStreaks$length[nrow(allStreaks)])
+        # endPlays <- rbinom(numPlaysLeft, 1, p)
+        # if(any(endPlays)){
+        #   tmpEnd <- tmp + B
+        # }else{
+        #   tmpEnd <- tmp - B*(2^k - 1)
+        # }
+        howMany <- min(k, allStreaks$length[nrow(allStreaks)])
+        tmp <- tmp - B*(2^howMany - 1)
+      }else{
+        # print("This loop is broken.")
+      }
+      
+      winnings[j, k] <- tmp
+      # winningsEnd[j, k] <- tmpEnd
+      
+    }
     
-    # for(k in 1:maxNumLosses){
-    #   
-    #   tmp <- 0
-    #   tmpVec <- vector(mode = "numeric", length = maxNumLosses)
-    #   for(m in 1:nrow(allStreaks)){
-    #     if(allStreaks$length[m] == k && allStreaks$value[m] == 0){
-    #       tmp <- tmp - (2^k - 1)
-    #       print(m)
-    #       break
-    #     } 
-    #     else{
-    #       print(m)
-    #       tmp <- tmp + allStreaks$length[m]*allStreaks$value[m]
-    #     }
-    #   }
-    #   
-    #   winnings[j, k] <- tmp
-    # }
-    
-    blah[j, ] <- numAtLeast
     
   }
   
   blah2 <- (blah > 0)
-  output[i, ] <- colMeans(blah2)
-  # avgWinnings[i, ] <- colMeans(winnings)
+  goBustProb[i, ] <- colMeans(blah2)
+  expectedWinnings[i, ] <- colMeans(winnings)
+  # expectedWinningsEnd[i, ] <- colMeans(winningsEnd)
+  winningsList[[i]] <- winnings
 }
-)
-# output
-# output <- round(output, 4)
-# avgWinnings <- round(avgWinnings, 2)
-# colnames(output) <- 1:ncol(output)
-# colnames(avgWinnings) <- 1:ncol(avgWinnings)
-# write.csv(output, file = "Output/output.csv")
-# write.csv(avgWinnings, file = "Output/avgWinnings.csv")
+
+goBustProb
+expectedWinnings
+# expectedWinningsEnd
+# goBustProb <- round(goBustProb, 4)
+# expectedWinnings <- round(expectedWinnings, 2)
+# colnames(goBustProb) <- 1:ncol(goBustProb)
+# colnames(expectedWinnings) <- 1:ncol(expectedWinnings)
+# write.csv(goBustProb, file = "Output/goBustProb.csv")
+# write.csv(expectedWinnings, file = "Output/expectedWinnings.csv")

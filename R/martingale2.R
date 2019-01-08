@@ -19,134 +19,85 @@ maxNumLosses <- 10
 goBustProb <- matrix(0, ncol = maxNumLosses, nrow = totalHands)
 expectedWinnings <- matrix(0, ncol = maxNumLosses, nrow = totalHands)
 expectedWinningsEnd <- matrix(0, ncol = maxNumLosses, nrow = totalHands)
-system.time(
-  for(i in 1:totalHands){
-    print(i)
-    blah <- matrix(0, ncol = maxNumLosses, nrow = nSims)
-    blahEnd <- matrix(0, ncol = maxNumLosses, nrow = nSims)
-    winnings <- matrix(NA, ncol = maxNumLosses, nrow = nSims)
-    winningsEnd <- matrix(NA, ncol = maxNumLosses, nrow = nSims)
-    for(j in 1:nSims){
+seqWinLossList <- vector("list", length = totalHands)
+winningsList <- vector("list", length = totalHands)
+
+for(i in 1:totalHands){
+  print(i)
+  blah <- matrix(0, ncol = maxNumLosses, nrow = nSims)
+  blahEnd <- matrix(0, ncol = maxNumLosses, nrow = nSims)
+  winnings <- matrix(NA, ncol = maxNumLosses, nrow = nSims)
+  winningsEnd <- matrix(NA, ncol = maxNumLosses, nrow = nSims)
+  seqWinLossList[[i]] <- matrix(NA, ncol = i, nrow = nSims)
+  for(j in 1:nSims){
+    
+    seqWinLoss <- rbinom(i, 1, p)         # simulate a sequence of wins and losses 
+    seqWinLossList[[i]][j,] <- seqWinLoss
+    seqLengthAndValues <- rle(seqWinLoss) # The rle() function gives the length of
+    # all sequences and the value (Win or Loss)
+    # of each sequence
+    
+    allStreaks <- data.frame(length = seqLengthAndValues$lengths,
+                             value = seqLengthAndValues$values)
+    
+    streaksOfLosses <- allStreaks %>% 
+      filter(value == 0) # the sequences that were all losses
+    
+    numAtLeast <- sapply(1:min(i, maxNumLosses), 
+                         function(x) sum(streaksOfLosses$length >= x))
+    blah[j, 1:length(numAtLeast)] <- numAtLeast
+    
+    
+    for(k in 1:maxNumLosses){
       
-      seqWinLoss <- rbinom(i, 1, p)         # simulate a sequence of wins and losses 
-      seqLengthAndValues <- rle(seqWinLoss) # The rle() function gives the length of
-      # all sequences and the value (Win or Loss)
-      # of each sequence
-      
-      allStreaks <- data.frame(length = seqLengthAndValues$lengths,
-                               value = seqLengthAndValues$values)
-      
-      streaksOfLosses <- allStreaks %>% 
-        filter(value == 0) # the sequences that were all losses
-      
-      numAtLeast <- sapply(1:min(i, maxNumLosses), 
-                           function(x) sum(streaksOfLosses$length >= x))
-      blah[j, 1:length(numAtLeast)] <- numAtLeast
-      
-      # for(k in 1:maxNumLosses){
-      #   winnings[j, k] <- sum(allStreaks$length*allStreaks$value)*(numAtLeast[k] == 0) +
-      #     -(2^k - 1)*(numAtLeast[k] > 0)
-      # }
-      
-      # for(k in 1:maxNumLosses){
-      #   
-      #   tmp <- 0
-      #   if(nrow(allStreaks) > 1){
-      #     for(m in 1:(nrow(allStreaks) - 1)){
-      #       if(allStreaks$length[m] >= k && allStreaks$value[m] == 0){
-      #         tmp <- tmp - B*(2^k - 1)
-      #         # print(tmp)
-      #         # print(str_c("m = ", m, ", tmp = ", tmp))
-      #         break
-      #       }
-      #       else if(allStreaks$length[m] < k && allStreaks$value[m] == 0){
-      #         # tmp <- tmp - B*(2^allStreaks$length[m] - 1)
-      #         # print(str_c("m = ", m, ", tmp = ", tmp))
-      #         next
-      #       }
-      #       else{
-      #         # print(m)
-      #         tmp <- tmp + B*allStreaks$length[m]
-      #         # print(str_c("m = ", m, ", tmp = ", tmp))
-      #       }
-      #     }
-      #   }
-      #   if(allStreaks$value[nrow(allStreaks)] == 1){
-      #     tmp <- tmp + B*allStreaks$length[nrow(allStreaks)]
-      #     # tmpEnd <- tmp
-      #   }else{
-      #     # tmpEnd <- tmp
-      #     # numPlaysLeft <- max(0, k - allStreaks$length[nrow(allStreaks)])
-      #     # endPlays <- rbinom(numPlaysLeft, 1, p)
-      #     # if(any(endPlays)){
-      #     #   tmpEnd <- tmp + B
-      #     # }else{
-      #     #   tmpEnd <- tmp - B*(2^k - 1)
-      #     # }
-      #     tmp <- tmp - B*(2^allStreaks$length[nrow(allStreaks)] - 1)
-      #     
-      #     
-      #   }
-      #   
-      #   winnings[j, k] <- tmp
-      #   # winningsEnd[j, k] <- tmpEnd
-      #   
-      # }
-      
-      for(k in 1:maxNumLosses){
-        
-        tmp <- 0
-        broken <- 0
-        if(nrow(allStreaks) > 1){
-          for(m in 1:(nrow(allStreaks) - 1)){
-            if(allStreaks$length[m] >= k && allStreaks$value[m] == 0){
-              tmp <- tmp - B*(2^k - 1)
-              # print(tmp)
-              # print(str_c("m = ", m, ", tmp = ", tmp))
-              broken <- 1
-              break
-            }else if(allStreaks$length[m] < k && allStreaks$value[m] == 0){
-              # tmp <- tmp - B*(2^allStreaks$length[m] - 1)
-              # print(str_c("m = ", m, ", tmp = ", tmp))
-              next
-            }else{
-              # print(m)
-              tmp <- tmp + B*allStreaks$length[m]
-              # print(str_c("m = ", m, ", tmp = ", tmp))
-            }
+      tmp <- 0
+      broken <- 0
+      if(nrow(allStreaks) > 1){
+        for(m in 1:(nrow(allStreaks) - 1)){
+          if(allStreaks$length[m] >= k && allStreaks$value[m] == 0){
+            tmp <- tmp - B*(2^k - 1)
+            broken <- 1
+            break
+          }else if(allStreaks$length[m] < k && allStreaks$value[m] == 0){
+            next
+          }else{
+            tmp <- tmp + B*allStreaks$length[m]
           }
         }
-        if(allStreaks$value[nrow(allStreaks)] == 1 && !broken){
-          tmp <- tmp + B*allStreaks$length[nrow(allStreaks)]
-          # tmpEnd <- tmp
-        }else if(allStreaks$value[nrow(allStreaks)] == 0 && !broken){
-          # tmpEnd <- tmp
-          # numPlaysLeft <- max(0, k - allStreaks$length[nrow(allStreaks)])
-          # endPlays <- rbinom(numPlaysLeft, 1, p)
-          # if(any(endPlays)){
-          #   tmpEnd <- tmp + B
-          # }else{
-          #   tmpEnd <- tmp - B*(2^k - 1)
-          # }
-          tmp <- tmp - B*(2^allStreaks$length[nrow(allStreaks)] - 1)
-        }else{
-          # print("This loop is broken.")
-        }
-        
-        winnings[j, k] <- tmp
-        # winningsEnd[j, k] <- tmpEnd
-        
+      }
+      if(allStreaks$value[nrow(allStreaks)] == 1 && !broken){
+        tmp <- tmp + B*allStreaks$length[nrow(allStreaks)]
+        # tmpEnd <- tmp
+      }else if(allStreaks$value[nrow(allStreaks)] == 0 && !broken){
+        # tmpEnd <- tmp
+        # numPlaysLeft <- max(0, k - allStreaks$length[nrow(allStreaks)])
+        # endPlays <- rbinom(numPlaysLeft, 1, p)
+        # if(any(endPlays)){
+        #   tmpEnd <- tmp + B
+        # }else{
+        #   tmpEnd <- tmp - B*(2^k - 1)
+        # }
+        howMany <- min(k, allStreaks$length[nrow(allStreaks)])
+        tmp <- tmp - B*(2^howMany - 1)
+      }else{
+        # print("This loop is broken.")
       }
       
+      winnings[j, k] <- tmp
+      # winningsEnd[j, k] <- tmpEnd
       
     }
     
-    blah2 <- (blah > 0)
-    goBustProb[i, ] <- colMeans(blah2)
-    expectedWinnings[i, ] <- colMeans(winnings)
-    # expectedWinningsEnd[i, ] <- colMeans(winningsEnd)
+    
   }
-)
+  
+  blah2 <- (blah > 0)
+  goBustProb[i, ] <- colMeans(blah2)
+  expectedWinnings[i, ] <- colMeans(winnings)
+  # expectedWinningsEnd[i, ] <- colMeans(winningsEnd)
+  winningsList[[i]] <- winnings
+}
+
 goBustProb
 expectedWinnings
 # expectedWinningsEnd
