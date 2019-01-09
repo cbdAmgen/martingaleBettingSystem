@@ -3,7 +3,7 @@ cat("\014")
 
 library(tidyverse)
 
-totalHands <- 10    # 1 minute per hand. This is where you set up your bets/time restriction
+totalHands <- 600    # 1 minute per hand. This is where you set up your bets/time restriction
 bankroll <- 1000    # starting amount in pocket. This is where you set up your wealth restriction
 B <- 1              # beginning bet
 
@@ -127,4 +127,4 @@ colnames(expectedWinnings) <- 1:ncol(expectedWinnings)
 colnames(expectedWinningsEnd) <- 1:ncol(expectedWinnings)
 write.csv(goBustProb, file = "Output/goBustProb.csv")
 write.csv(expectedWinnings, file = "Output/expectedWinnings.csv")
-write.csv(expectedWinnings, file = "Output/expectedWinningsEnd.csv")
+write.csv(expectedWinningsEnd, file = "Output/expectedWinningsEnd.csv")
