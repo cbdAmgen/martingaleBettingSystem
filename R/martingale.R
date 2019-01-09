@@ -53,8 +53,8 @@ for(i in 1:totalHands){
       
       tmp <- 0
       broken <- 0
-      if(nrow(allStreaks) > 1){
-        for(m in 1:(nrow(allStreaks) - 1)){
+      if(nRowAS > 1){
+        for(m in 1:(nRowAS - 1)){
           if(allStreaks$length[m] >= k && allStreaks$value[m] == 0){
             tmp <- tmp - B*(2^k - 1)
             broken <- 1
@@ -66,28 +66,30 @@ for(i in 1:totalHands){
           }
         }
       }
-      if(allStreaks$value[nrow(allStreaks)] == 1 && !broken){
-        tmp <- tmp + B*allStreaks$length[nrow(allStreaks)]
-        # tmpEnd <- tmp
-      }else if(allStreaks$value[nrow(allStreaks)] == 0 && !broken){
-        # tmpEnd <- tmp
-        # numPlaysLeft <- max(0, k - allStreaks$length[nrow(allStreaks)])
-        # endPlays <- rbinom(numPlaysLeft, 1, p)
-        # if(any(endPlays)){
-        #   tmpEnd <- tmp + B
-        # }else{
-        #   tmpEnd <- tmp - B*(2^k - 1)
-        # }
-        howMany <- min(k, allStreaks$length[nrow(allStreaks)])
+      if(allStreaks$value[nRowAS] == 1 && !broken){
+        tmp <- tmp + B*allStreaks$length[nRowAS]
+        tmpEnd <- tmp
+      }else if(allStreaks$value[nRowAS] == 0 && !broken){
+        tmpEnd <- tmp
+        numPlaysLeft <- max(0, k - allStreaks$length[nRowAS])
+        endPlays <- rbinom(numPlaysLeft, 1, p)
+        if(any(endPlays)){
+          tmpEnd <- tmp + B
+        }else{
+          tmpEnd <- tmp - B*(2^k - 1)
+        }
+        howMany <- min(k, allStreaks$length[nRowAS])
         tmp <- tmp - B*(2^howMany - 1)
       }else{
+        tmpEnd <- tmp
         # print("This loop is broken.")
       }
       
       winnings[j, k] <- tmp
-      # winningsEnd[j, k] <- tmpEnd
+      winningsEnd[j, k] <- tmpEnd
       
     }
+    
     
     
   }

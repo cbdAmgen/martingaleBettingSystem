@@ -44,43 +44,101 @@ microbenchmark::microbenchmark(SAPPLY = sapply(1:maxNumLosses, function(x) sum(z
                                DATATABLE = DT[, .(numAtLeast = sum(zxc >= V1)), by = V1][,numAtLeast])
 
 
-l.ex <- list(a = list(1:5, LETTERS[1:5]), b = "Z", c = NA)
-unlist(l.ex, recursive = FALSE)
-unlist(l.ex, recursive = TRUE)
+############################################################################
 
-l1 <- list(a = "a", b = 2, c = pi+2i)
-unlist(l1) # a character vector
-l2 <- list(a = "a", b = as.name("b"), c = pi+2i)
-unlist(l2) # remains a list
-
-ll <- list(as.name("sinc"), quote( a + b ), 1:10, letters, expression(1+x))
-utils::str(ll)
-for(x in ll)
-  stopifnot(identical(x, unlist(x)))
-
-
-for(k in 1:maxNumLosses){
+func1 <- function(k){
   
   tmp <- 0
-  # tmpVec <- vector(mode = "numeric", length = maxNumLosses)
-  for(m in 1:nrow(allStreaks)){
-    if(allStreaks$length[m] >= k && allStreaks$value[m] == 0){
-      tmp <- tmp - B*(2^k - 1)
-      # print(tmp)
-      print(str_c("m = ", m, ", tmp = ", tmp))
-      break
-    }
-    else if(allStreaks$length[m] < k && allStreaks$value[m] == 0){
-      # tmp <- tmp - B*(2^allStreaks$length[m] - 1)
-      print(str_c("m = ", m, ", tmp = ", tmp))
-      next
-    }
-    else{
-      # print(m)
-      tmp <- tmp + B*allStreaks$length[m]
-      print(str_c("m = ", m, ", tmp = ", tmp))
+  broken <- 0
+  if(nRowAS > 1){
+    for(m in 1:(nRowAS - 1)){
+      if(allStreaks$length[m] >= k && allStreaks$value[m] == 0){
+        tmp <- tmp - B*(2^k - 1)
+        broken <- 1
+        break
+      }else if(allStreaks$length[m] < k && allStreaks$value[m] == 0){
+        next
+      }else{
+        tmp <- tmp + B*allStreaks$length[m]
+      }
     }
   }
+  if(allStreaks$value[nRowAS] == 1 && !broken){
+    tmp <- tmp + B*allStreaks$length[nRowAS]
+    tmpEnd <- tmp
+  }else if(allStreaks$value[nRowAS] == 0 && !broken){
+    tmpEnd <- tmp
+    numPlaysLeft <- max(0, k - allStreaks$length[nRowAS])
+    endPlays <- rbinom(numPlaysLeft, 1, p)
+    if(any(endPlays)){
+      tmpEnd <- tmp + B
+    }else{
+      tmpEnd <- tmp - B*(2^k - 1)
+    }
+    howMany <- min(k, allStreaks$length[nRowAS])
+    tmp <- tmp - B*(2^howMany - 1)
+  }else{
+    tmpEnd <- tmp
+    # print("This loop is broken.")
+  }
   
-  winnings[j, k] <- tmp
+  # return(list(winnings = tmp, winningsEnd = tmpEnd))
+  
+  toReturn <- matrix(c(tmp, tmpEnd), ncol = 2, nrow =1)
+  return(toReturn)
+  
 }
+
+j = 1
+
+doSapply <- function(){
+  allWinnings <- sapply(1:maxNumLosses, func1, simplify = TRUE)
+  winnings[j,] <- allWinnings[1,]
+  winningsEnd[j,] <- allWinnings[2,]
+}
+
+
+doLoop <- function(){
+  for(k in 1:maxNumLosses){
+    
+    tmp <- 0
+    broken <- 0
+    if(nRowAS > 1){
+      for(m in 1:(nRowAS - 1)){
+        if(allStreaks$length[m] >= k && allStreaks$value[m] == 0){
+          tmp <- tmp - B*(2^k - 1)
+          broken <- 1
+          break
+        }else if(allStreaks$length[m] < k && allStreaks$value[m] == 0){
+          next
+        }else{
+          tmp <- tmp + B*allStreaks$length[m]
+        }
+      }
+    }
+    if(allStreaks$value[nRowAS] == 1 && !broken){
+      tmp <- tmp + B*allStreaks$length[nRowAS]
+      tmpEnd <- tmp
+    }else if(allStreaks$value[nRowAS] == 0 && !broken){
+      tmpEnd <- tmp
+      numPlaysLeft <- max(0, k - allStreaks$length[nRowAS])
+      endPlays <- rbinom(numPlaysLeft, 1, p)
+      if(any(endPlays)){
+        tmpEnd <- tmp + B
+      }else{
+        tmpEnd <- tmp - B*(2^k - 1)
+      }
+      howMany <- min(k, allStreaks$length[nRowAS])
+      tmp <- tmp - B*(2^howMany - 1)
+    }else{
+      tmpEnd <- tmp
+      # print("This loop is broken.")
+    }
+    
+    winnings[j, k] <- tmp
+    winningsEnd[j, k] <- tmpEnd
+    
+  }
+}
+microbenchmark::microbenchmark(doSapply(),
+                               doLoop())

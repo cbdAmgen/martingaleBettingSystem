@@ -22,6 +22,52 @@ expectedWinningsEnd <- matrix(0, ncol = maxNumLosses, nrow = totalHands)
 seqWinLossList <- vector("list", length = totalHands)
 winningsList <- vector("list", length = totalHands)
 
+
+func1 <- function(k){
+  
+  tmp <- 0
+  broken <- 0
+  if(nRowAS > 1){
+    for(m in 1:(nRowAS - 1)){
+      if(allStreaks$length[m] >= k && allStreaks$value[m] == 0){
+        tmp <- tmp - B*(2^k - 1)
+        broken <- 1
+        break
+      }else if(allStreaks$length[m] < k && allStreaks$value[m] == 0){
+        next
+      }else{
+        tmp <- tmp + B*allStreaks$length[m]
+      }
+    }
+  }
+  if(allStreaks$value[nRowAS] == 1 && !broken){
+    tmp <- tmp + B*allStreaks$length[nRowAS]
+    tmpEnd <- tmp
+  }else if(allStreaks$value[nRowAS] == 0 && !broken){
+    tmpEnd <- tmp
+    numPlaysLeft <- max(0, k - allStreaks$length[nRowAS])
+    endPlays <- rbinom(numPlaysLeft, 1, p)
+    if(any(endPlays)){
+      tmpEnd <- tmp + B
+    }else{
+      tmpEnd <- tmp - B*(2^k - 1)
+    }
+    howMany <- min(k, allStreaks$length[nRowAS])
+    tmp <- tmp - B*(2^howMany - 1)
+  }else{
+    tmpEnd <- tmp
+    # print("This loop is broken.")
+  }
+  
+  # return(list(winnings = tmp, winningsEnd = tmpEnd))
+  
+  toReturn <- matrix(c(tmp, tmpEnd), ncol = 2, nrow =1)
+  return(toReturn)
+  
+}
+
+
+tictoc::tic()
 for(i in 1:totalHands){
   print(i)
   blah <- matrix(0, ncol = maxNumLosses, nrow = nSims)
@@ -49,48 +95,18 @@ for(i in 1:totalHands){
     
     
     nRowAS <- nrow(allStreaks)
-    for(k in 1:maxNumLosses){
-      
-      tmp <- 0
-      broken <- 0
-      if(nRowAS > 1){
-        for(m in 1:(nRowAS - 1)){
-          if(allStreaks$length[m] >= k && allStreaks$value[m] == 0){
-            tmp <- tmp - B*(2^k - 1)
-            broken <- 1
-            break
-          }else if(allStreaks$length[m] < k && allStreaks$value[m] == 0){
-            next
-          }else{
-            tmp <- tmp + B*allStreaks$length[m]
-          }
-        }
-      }
-      if(allStreaks$value[nRowAS] == 1 && !broken){
-        tmp <- tmp + B*allStreaks$length[nRowAS]
-        tmpEnd <- tmp
-      }else if(allStreaks$value[nRowAS] == 0 && !broken){
-        tmpEnd <- tmp
-        numPlaysLeft <- max(0, k - allStreaks$length[nRowAS])
-        endPlays <- rbinom(numPlaysLeft, 1, p)
-        if(any(endPlays)){
-          tmpEnd <- tmp + B
-        }else{
-          tmpEnd <- tmp - B*(2^k - 1)
-        }
-        howMany <- min(k, allStreaks$length[nRowAS])
-        tmp <- tmp - B*(2^howMany - 1)
-      }else{
-        tmpEnd <- tmp
-        # print("This loop is broken.")
-      }
-      
-      winnings[j, k] <- tmp
-      winningsEnd[j, k] <- tmpEnd
-      
-    }
     
     
+    allWinnings <- sapply(1:maxNumLosses, func1)
+    
+    # for(k in 1:maxNumLosses){
+    #   
+    #   winnings[j,k] <- allWinnings$winnings
+    #   winningsEnd[j,k] <- allWinnings$winningsEnd
+    #   
+    # }
+    winnings[j,] <- allWinnings[1,]
+    winningsEnd[j,] <- allWinnings[2,]
   }
   
   blah2 <- (blah > 0)
@@ -99,13 +115,16 @@ for(i in 1:totalHands){
   expectedWinningsEnd[i, ] <- colMeans(winningsEnd)
   winningsList[[i]] <- winnings
 }
-
+tictoc::toc()
 goBustProb
 expectedWinnings
 expectedWinningsEnd
-# goBustProb <- round(goBustProb, 4)
-# expectedWinnings <- round(expectedWinnings, 2)
-# colnames(goBustProb) <- 1:ncol(goBustProb)
-# colnames(expectedWinnings) <- 1:ncol(expectedWinnings)
-# write.csv(goBustProb, file = "Output/goBustProb.csv")
-# write.csv(expectedWinnings, file = "Output/expectedWinnings.csv")
+goBustProb <- round(goBustProb, 4)
+expectedWinnings <- round(expectedWinnings, 4)
+expectedWinningsEnd <- round(expectedWinningsEnd, 4)
+colnames(goBustProb) <- 1:ncol(goBustProb)
+colnames(expectedWinnings) <- 1:ncol(expectedWinnings)
+colnames(expectedWinningsEnd) <- 1:ncol(expectedWinnings)
+write.csv(goBustProb, file = "Output/goBustProb.csv")
+write.csv(expectedWinnings, file = "Output/expectedWinnings.csv")
+write.csv(expectedWinnings, file = "Output/expectedWinningsEnd.csv")
